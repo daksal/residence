@@ -4,9 +4,15 @@ author: "언론홍보학과 정윤혁"
 date: "21/09/2022"
 format: html
 editor: visual
+code-fold: true
+code-tools: true
+editor_options: 
+  chunk_output_type: console
 ---
 
 # 야놀자 & 여기 어때
+
+-   기간: 2022.01 \~ 2022.09.18
 
 빅카인즈 키워드 검색을 통해 '야놀자'와 '여기 어때' 기업에 대한 기사를 분석함
 
@@ -20,10 +26,8 @@ editor: visual
 
 ##### *1) 패키지 설치 및 불러오기*
 
-```{r}
-#| label: 패키지 불러오기
-#| include: false
-#| warning: false
+```{r, label: 패키지 불러오기, include: false, warning: false}
+ 
 c( "rio", "psych", "psychTools", "skimr", "janitor", 
 
   "tidyverse", "tidytable", "tidymodels", "lm.beta",
