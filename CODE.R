@@ -53,6 +53,8 @@ yanolja_df <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/dat
 hah_df <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/hah_after_covid.xlsx") %>% 
   select.(제목, 언론사, 본문, URL)
 
+yanolja <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/yanolja_after_covid.xlsx")
+hah <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/hah_after_covid.xlsx")
 ### 정제
 yanolja_tk <- 
   yanolja_df %>% 
@@ -114,7 +116,7 @@ yanolja_tk %>%
   count(word, emotion, sort = T) %>% 
   mutate(word = reorder(word, n)) %>% 
   filter(str_length(word) > 1) %>% 
-  top_n(50) %>% 
+  top_n(20) %>% 
   ggplot(aes(word, n, fill = emotion)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~emotion, scales = "free_y") +
@@ -181,7 +183,7 @@ hah_tk %>%
    count(word, emotion, sort = T) %>% 
    mutate(word = reorder(word, n)) %>% 
    filter(str_length(word) > 1) %>% 
-   top_n(50) %>% 
+   top_n(20) %>% 
    ggplot(aes(word, n, fill = emotion)) +
    geom_col(show.legend = FALSE) +
    facet_wrap(~emotion, scales = "free_y") +
@@ -220,17 +222,6 @@ hah_total <- hah_tk %>%
 
 #3 상대빈도
 ##1 야놀자 상대빈도
-
-yanolja_tk %>% 
-  count(언론사, word) %>% 
-  bind_log_odds(set = 언론사,
-                feature = word,
-                n = n) %>% 
-  group_by(언론사) %>% 
-  slice_max(abs(log_odds_weighted), n = 10) %>% 
-  ggplot(aes(x = log_odds_weighted,
-             y = reorder(word, log_odds_weighted))) +
-  geom_col(show.legend = F)
 
 
 yanolja_tk %>% 
