@@ -1,0 +1,350 @@
+---
+title: "기간별에 따른 주제 변화, 야놀자 중심으로"
+output:
+  html_document: default
+  pdf_document: default
+date: "2022-11-02"
+---
+
+> -   기간: 2020.02.01 \~ 2022.10.19
+>
+> 빅카인즈 키워드 검색을 통해 '야놀자'와 '여기어때' 기업에 대한 기사를 분석함
+>
+> 분석 기간은 2020년 02월(코로나 발생 시점)부터 2022년 10월까지의 기사를 다루었다.
+>
+> 야놀자는 3620건을 분석했다.
+>
+> 분석 순서로는 **공변인 토픽 개수 선정, 월별,년도별 주제 변화도 ** 순으로 분석했다.
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+### 1. 분석에 앞선 기본적인 준비
+
+##### *1) 패키지 설치 및 불러오기*
+
+<details>
+
+<summary>패키지 불러오기</summary>
+
+::: {markdown="1-1"}
+```{r 패키지 불러오기, include=FALSE, warning=FALSE}
+
+c( "rio", "psych", "psychTools", "skimr", "janitor", 
+   
+   "tidyverse", "tidytable", "tidymodels", "lm.beta",
+   
+   "GGally", "ggforce", "gt", "mdthemes", "patchwork",
+   
+   "r2symbols", "equatiomatic", "purrr", "palmerpenguins",
+   
+   "textdata", "tidytext", "epubr", "stm", "quarto", "wordcloud",
+   
+   "RcppMeCab", "KoNLP", "tidyr", "dplyr", "tidylo", "lubridate"
+   
+) -> pkg 
+
+lapply(pkg, require, ch = T)
+
+sapply(pkg, function(x){
+
+  if(!require(x, ch = T)) install.packages(x)
+
+  library(x, ch = T)
+
+})
+```
+:::
+
+</details>
+
+##### *2) 파일 경로 설정*
+
+<details>
+
+<summary>파일경로 설정</summary>
+
+```{r}
+#| label: 파일경로 설정
+#| include: true
+#| warning: false
+
+setwd("C:/Users/YH JUNG/Documents/R/GIT/residence/data")
+
+getwd()
+```
+
+</details>
+
+
+### 2. 주제모형
+
+> 모형 구축을 위해 기준점이 되는 자료 열 "press", "cat" 등을 새롭게 불러와 자료를 수집하고
+>
+> 수집한 기사의 중복 기사를 삭제하고 기사별 열 번호를 기입하여 분석에 용의하게 정제했다.
+>
+> 많은 주제 중 경제와 문화 측면의 기사가 가장 많아 경제로 묶었다.
+>
+> 다양한 언론사를 야당지와 여당지로 추가 분류하였고 속하지 않은 언론사는 여당지로 분류하였다.
+
+<details>
+
+<summary>자료 정제</summary>
+
+##### 1) 모델링을 위한 자료 수집
+
+```{r}
+#| label: 자료수집
+#| include: false
+#| warning: false
+
+#야놀자
+yanolja_sub <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/yanolja_after_covid_20190201-20220930.xlsx") %>%
+select(일자, 제목, 본문, 언론사, cat = `통합 분류1`, 키워드) 
+
+```
+</details>
+
+기간을 세분화하기 위해 lubridate 패키지를 사용하여 일자를 세분화하여 추가했다.
+
+##### 2) 자료 정제
+
+<details>
+
+<summary>야놀자 자료 정제</summary>
+
+```{r}
+#| label: 야놀자 자료 정제
+#| include: true
+#| warning: false
+
+yanolja_sub2 <- yanolja_sub %>%
+
+distinct(제목, .keep_all = T) %>%
+
+mutate(ID = factor(row_number())) %>%
+  
+mutate(date = ymd(일자)) %>%
+  
+mutate(year = year(date)) %>%
+  
+mutate(month = month(date)) %>% 
+
+mutate(day = day(date)) %>%
+
+unite(제목, 본문, col = "text", sep = " ") %>%
+
+mutate(text = str_squish(text)) %>%
+
+mutate(press = case_when(
+
+언론사 == "조선일보" ~ "야당지",
+
+언론사 == "중앙일보" ~ "야당지",
+
+언론사 == "동앙일보" ~ "야당지",
+
+언론사 == "국민일보" ~ "야당지",
+
+언론사 == "문화일보" ~ "야당지",
+
+언론사 == "한국경제" ~ "야당지",
+
+언론사 == "경향신문" ~ "여당지",
+
+TRUE ~ "여당지") ) %>%
+
+separate(cat, sep = ">", into = c("cat", "cat2")) %>%
+
+select(-cat2) %>%
+
+mutate(catSoc = case_when( cat == "경제" ~ "경제면",
+                           cat == "문화" ~ "경제면", 
+                           TRUE ~ "비경제면") )
+
+#주제별 갯수
+yanolja_sub2 %>% count(cat, sort = T)
+```
+
+</details>
+
+##### 3) 토큰화
+
+<details>
+
+<summary>야놀자 토큰화</summary>
+
+```{r}
+#| label: 야놀자 토큰화
+#| include: true
+#| warning: false
+
+fullchar_v <- "ㆍ|ㅣ|‘|’|“|”|○|●|◎|◇|◆|□|■|△|▲|▽|▼|〓|◁|◀|▷|▶|♤|♠|♡|♥|♧|♣|⊙|◈|▣"
+
+
+#야놀자 토큰화
+yanolja_S <- yanolja_sub2 %>%
+
+mutate(키워드 = str_remove_all(키워드, "[^(\\w+|\\d+|,)]")) %>%
+
+mutate(키워드 = str_remove_all(키워드, fullchar_v)) %>%
+
+unnest_tokens(word, 키워드, token = "regex", pattern = ",")
+
+#토큰화 후 데이터 결합
+
+yanolja_C <- yanolja_S %>%
+
+group_by(ID) %>%
+
+summarise(text2 = str_flatten(word, " ")) %>%
+
+ungroup() %>%
+
+inner_join(yanolja_sub2, by = "ID")
+```
+
+</details>
+
+
+##### 4) stm 말뭉치
+
+<details>
+
+<summary>야놀자 stm 말뭉치 & 객체 할당</summary>
+
+```{r}
+#| label: 야놀자 stm 말뭉치 & 객체 할당
+#| include: true
+#| warning: false
+
+processed_yanol <- yanolja_C %>% 
+  textProcessor(documents = yanolja_C$text2,
+                metadata = .,
+                wordLengths = c(2, Inf))
+
+out_yanol <- prepDocuments(processed_yanol$documents,
+                           processed_yanol$vocab,
+                           processed_yanol$meta,
+                           lower.thresh = 0)
+
+summary(out_yanol)
+
+# 모형구축을 위한 객체 저장
+docs_yanol <- out_yanol$documents
+
+vocab_yanol <- out_yanol$vocab
+
+meta_yanol <- out_yanol$meta
+```
+
+</details>
+
+
+##### 5) 공변인 분석
+
+```{r}
+#| label: 토픽 갯수 정하기
+#| include: false
+#| warning: false
+#| eval: false
+#주제 갯수
+topicN <- c(10)
+
+storage_yanol <- searchK(docs_yanol, vocab_yanol, K = topicN)
+
+storage_hah <- searchK(docs_hah, vocab_hah, K = topicN)
+```
+
+토픽 모델링을 하기 전에 모델을 1개부터 100개까지 코드를 진행해보았고 10개 이상부터 유의미한 토픽 분석이 될 것으로 확인되어 10개로 정했다.
+
+<details>
+
+<summary>야놀자 주제모형(공변인) 분석</summary>
+
+```{r}
+#| label: 야놀자 주제모형(공변인) 분석
+#| include: true
+#| warning: false
+
+#시스템 시간
+t1 <- Sys.time()
+t2 <- Sys.time()
+#주제모형 구성
+meta_fit_yanol_m <- stm(documents = docs_yanol,
+                      vocab = vocab_yanol,
+                      data = meta_yanol,
+                      K = 10,
+                      prevalence =~ press + s(month, 12), 
+                      max.em.its = 75, 
+                      verbose = F, 
+                      init.type = "Spectral",
+                      seed = 37)
+
+meta_fit_yanol_y <- stm(documents = docs_yanol,
+                      vocab = vocab_yanol,
+                      data = meta_yanol,
+                      K = 10,
+                      prevalence =~ press + s(year, 3), 
+                      max.em.its = 75, 
+                      verbose = F, 
+                      init.type = "Spectral",
+                      seed = 37)
+
+```
+
+</details>
+
+<details>
+
+<summary>야놀자 월별 주제 분포</summary>
+
+```{r}
+#| label: 야놀자 월별 주제 분포
+#| include: true
+#| warning: false
+prep_m <- estimateEffect(formula = 1:10 ~ press + s(month, 12), 
+                       stmobj = meta_fit_yanol_m,
+                       metadata = out_yanol$meta,
+                       uncertainty = "Global")
+
+plot.estimateEffect(
+  prep_m,
+  covariate = "month",    
+  topics = c(1:10),
+  model = meta_fit_yanol_m,
+  method = "continuous", # 시간대 연속적으로 표시
+  xlab = "월별",
+  main = "기간별 주제 분포"
+)
+```
+</details>
+
+<details>
+
+<summary>야놀자 연도별 주제 분포</summary>
+
+```{r}
+#| label: 야놀자 연도별 주제 분포
+#| include: true
+#| warning: false
+prep_y <- estimateEffect(formula = 1:10 ~ press + s(year, 3), 
+                       stmobj = meta_fit_yanol_y,
+                       metadata = out_yanol$meta,
+                       uncertainty = "Global")
+
+plot.estimateEffect(
+  prep_y,
+  covariate = "year",    
+  topics = c(1:10),
+  model = meta_fit_yanol_y,
+  method = "continuous", # 시간대 연속적으로 표시
+  xlab = "연도별",
+  main = "기간별 주제 분포"
+)
+```
+</details>
+
+### 정리
+

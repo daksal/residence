@@ -113,7 +113,7 @@ list.files("data/KnuSentiLex-master/")
 # 야놀자
 yanolja_df <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/yanolja_main_data(2020.02 ~ 2022.10).xlsx") %>%
   
-select.(제목, 언론사, 본문, URL)
+select.(제목, 언론사, 본문, 일자)
 
 yanolja_tk <- yanolja_df %>%
   
@@ -915,9 +915,9 @@ meta_hah <- out_hah$meta
 #| label: 토픽 갯수 정하기
 #| include: false
 #| warning: false
-#| eval: true
+#| eval: false
 #주제 갯수
-topicN <- c(3, 10)
+topicN <- c(10)
 
 storage_yanol <- searchK(docs_yanol, vocab_yanol, K = topicN)
 
@@ -958,10 +958,10 @@ meta_fit_yanol <- stm(documents = docs_yanol,
 
 ```{r}
 #| label: 여기어때 주제모형(공변인) 분석
-#| include: true
+#| include: false
 #| warning: false
 
-plot(storage_hah)
+#plot(storage_hah)
 
 meta_fit_hah <- stm(documents = docs_hah,
                     vocab = vocab_hah,
