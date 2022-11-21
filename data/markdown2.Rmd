@@ -1,0 +1,1286 @@
+---
+title: "연도별 주제 흐름 변화, 야놀자 중심으로"
+output:
+  html_document: default
+  pdf_document: default
+date: "2022-11-08"
+---
+
+> -   기간: 2020.01.01 \~ 2020.12.31
+> -   기간: 2021.01.01 \~ 2021.12.31
+> -   기간: 2022.01.01 \~ 2022.10.31
+>
+> 빅카인즈 키워드 검색을 통해 2020년, 2021년, 2022년에 해당하는 데이터들을 수집함
+>
+> '야놀자'를 중심으로 20년 1,147건, 21년 2,148건, 22년 1,518건을 분석한다.
+>
+> 각 연도별 총빈도수와 주제의 변화를 알아보고자 한다.
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+### 1. 분석에 앞선 기본적인 준비
+
+##### 1) 패키지 설치 및 불러오기
+
+<details>
+
+<summary>패키지 불러오기</summary>
+```{r 패키지 불러오기, include=TRUE, warning=FALSE}
+
+c( "rio", "psych", "psychTools", "skimr", "janitor", 
+   
+   "tidyverse", "tidytable", "tidymodels", "lm.beta",
+   
+   "GGally", "ggforce", "gt", "mdthemes", "patchwork",
+   
+   "r2symbols", "equatiomatic", "purrr", "palmerpenguins",
+   
+   "textdata", "tidytext", "epubr", "stm", "quarto", "wordcloud",
+   
+   "RcppMeCab", "KoNLP", "tidyr", "dplyr", "tidylo", "lubridate"
+   
+) -> pkg 
+
+lapply(pkg, require, ch = T)
+
+sapply(pkg, function(x){
+
+  if(!require(x, ch = T)) install.packages(x)
+
+  library(x, ch = T)
+
+})
+```
+
+</details>
+
+##### 2) 파일 경로 설정
+
+<details>
+
+<summary>파일경로 설정</summary>
+
+```{r}
+#| label: 파일경로 설정
+#| include: true
+#| warning: false
+
+setwd("C:/Users/YH JUNG/Documents/R/GIT/residence/data")
+
+getwd()
+```
+
+</details>
+
+##### 3) 자료 불러오기 및 자료 정제
+
+<details>
+
+<summary>빅카인즈 야놀자 연도별 자료</summary>
+
+```{r}
+#| label: 빅카인즈 야놀자 연도별 자료
+#| include: true
+#| warning: false
+
+# 야놀자 2020
+yanolja2020_df <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/NewsResult_20200101-20201231.xlsx") %>%
+  
+select.(제목, 언론사, 본문, 일자)
+
+yanolja2020_tk <- yanolja2020_df %>%
+  
+drop_na() %>%
+  
+unnest_tokens(word, 제목, token = pos) %>%
+  
+separate(word, c("word", "pos"), sep = "/") %>%
+  
+filter(pos == 'nng')
+
+# 야놀자 2021
+yanolja2021_df <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/NewsResult_20210101-20211231.xlsx") %>%
+  
+select.(제목, 언론사, 본문, 일자)
+
+yanolja2021_tk <- yanolja2021_df %>%
+  
+drop_na() %>%
+  
+unnest_tokens(word, 제목, token = pos) %>%
+  
+separate(word, c("word", "pos"), sep = "/") %>%
+  
+filter(pos == 'nng')
+
+# 야놀자 2022
+yanolja2022_df <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/NewsResult_20220101-20221031.xlsx") %>%
+  
+select.(제목, 언론사, 본문, 일자)
+
+yanolja2022_tk <- yanolja2022_df %>%
+  
+drop_na() %>%
+  
+unnest_tokens(word, 제목, token = pos) %>%
+  
+separate(word, c("word", "pos"), sep = "/") %>%
+  
+filter(pos == 'nng')
+
+```
+
+</details>
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+### 2. 총빈도 & 상대빈도
+
+#### 1) 총빈도
+
+```{r}
+#| label: 야놀자 총빈도 2020
+#| include: true
+#| warning: false
+
+yanolja2020_total <- yanolja2020_tk %>%
+
+count(word, sort = T) %>%
+
+slice_max(n, n = 15) %>%
+
+ggplot(aes(x = n,
+
+y = reorder(word, n))) +
+
+geom_col(show.legend = F) +
+
+ labs(x = "단어 수", y = "단어",
+       title = "2020년 야놀자 총빈도")
+
+yanolja2020_total
+```
+2020년은 투자, 여행, 숙박 관련된 단어가 주를 이루었다.
+
+```{r}
+#| label: 야놀자 총빈도 2021
+#| include: true
+#| warning: false
+
+yanolja2021_total <- yanolja2021_tk %>%
+
+count(word, sort = T) %>%
+
+slice_max(n, n = 15) %>%
+
+ggplot(aes(x = n,
+
+y = reorder(word, n))) +
+
+geom_col(show.legend = F) +
+
+   labs(x = "단어 수", y = "단어",
+       title = "2021년 야놀자 총빈도")
+
+yanolja2021_total
+```
+2021년도 2020년과 마찬가지로 투자가 주를 이루었지만, 2020년보다도 더 깊게 이야기가 나왔다. 야놀자의 플랫폼, 기업, 스타트업 등과 같은 내용이 여행보다도 많이 나온 것으로 보아 2021년도의 야놀자는 이러한 내용이 주를 이룬 것으로 보인다.
+```{r}
+#| label: 야놀자 총빈도 2022
+#| include: true
+#| warning: false
+
+yanolja2022_total <- yanolja2022_tk %>%
+
+count(word, sort = T) %>%
+
+slice_max(n, n = 15) %>%
+
+ggplot(aes(x = n,
+
+y = reorder(word, n))) +
+
+geom_col(show.legend = F) +
+  
+ labs(x = "단어 수", y = "단어",
+       title = "2022년 야놀자 총빈도")
+
+yanolja2022_total
+```
+2022년도의 단어는 2020년도의 단어와 유사한 것으로 보여진다.
+
+#### 2) 상대빈도
+
+<summary>상대빈도 2020 & 2021</summary>
+
+```{r}
+#| label: 상대빈도 2020, 2021
+#| include: true
+#| warning: false
+
+yanolja2020_df %>% 
+  unnest_tokens(output = word, input = 본문, token  = pos) %>% 
+  separate(col = word, 
+           into = c("word", "pos"),
+           sep = "/") %>% 
+  filter(pos == "nng")-> yj2020_df
+
+yanolja2021_df %>% 
+  unnest_tokens(output = word, input = 본문, token  = pos) %>% 
+  separate(col = word, 
+           into = c("word", "pos"),
+           sep = "/") %>% 
+  filter(pos == "nng")-> yj2021_df
+
+#상대빈도 결합
+bind_rows(yj2020_df, yj2021_df, .id = "기업")  %>% 
+  filter(str_length(word) > 1) %>%
+  filter(word != "야놀자") %>% 
+  count(word, 기업) %>% 
+  bind_log_odds(set = 기업,
+                feature = word, 
+                n = n) %>% 
+  arrange(-log_odds_weighted) -> weighted_log_odds01_df
+
+weighted_log_odds01_df %>%
+  group_by(기업 = ifelse(기업 > 1, "야놀자2021", "야놀자2020")) %>%
+  slice_max(abs(log_odds_weighted), n = 15) %>%
+  ggplot(aes(x = log_odds_weighted,
+             y = reorder(word, log_odds_weighted),
+             fill = 기업)) +
+  geom_col(show.legend = F) +
+  facet_wrap(~기업, scale = "free")
+```
+20년도에서 21년도에 들어오며 눈에 띄는 상대적 단어를 살펴본다.
+20년도는 코로나의 발발로 바이러스, 감염증, 확진과 같은 단어들이 많이 나타난 것으로 보인다.
+눈에 띄는 기술로는 블록체인이 있는데 코로나 이전 유행한 코인의 흐름을 야놀자도 함께 탄 것이다.
+21년도에는 야놀자가 논란의 중심이 되었던 숙박어플리케이션 불법행위 조장과 수수료 책정 문제와 관련한 질의를 국정감사에서 답변한다는 기사가 중심이 되었다.
+
+
+<summary>상대빈도 2021 & 2022</summary>
+
+```{r}
+#| label: 상대빈도 2021, 2022
+#| include: true
+#| warning: false
+
+yanolja2022_df %>% 
+  unnest_tokens(output = word, input = 본문, token  = pos) %>% 
+  separate(col = word, 
+           into = c("word", "pos"),
+           sep = "/") %>% 
+  filter(pos == "nng")-> yj2022_df
+
+#상대빈도 결합
+bind_rows(yj2021_df, yj2022_df, .id = "기업")  %>% 
+  filter(str_length(word) > 1) %>%
+  filter(word != "야놀자") %>% 
+  count(word, 기업) %>% 
+  bind_log_odds(set = 기업,
+                feature = word, 
+                n = n) %>% 
+  arrange(-log_odds_weighted) -> weighted_log_odds12_df
+
+weighted_log_odds12_df %>%
+  group_by(기업 = ifelse(기업 > 1, "야놀자2022", "야놀자2021")) %>%
+  slice_max(abs(log_odds_weighted), n = 15) %>%
+  ggplot(aes(x = log_odds_weighted,
+             y = reorder(word, log_odds_weighted),
+             fill = 기업)) +
+  geom_col(show.legend = F) +
+  facet_wrap(~기업, scale = "free")
+```
+21년도 국정 감사가 주된 내용을 이루었다면, 22년에는 주식과 함께 산불관련 내용이 중심을 이루었다. 
+2022년 야놀자는 강원도 산불을 ESG 캠페인으로 지원하여 자신의 이미지를 변화시켰다. 
+
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+### 3. 주제모형
+
+> 모형 구축을 위해 기준점이 되는 자료 열 "press", "cat" 등을 새롭게 불러와 자료를 수집하고
+>
+> 수집한 기사의 중복 기사를 삭제하고 기사별 열 번호를 기입하여 분석에 용의하게 정제했다.
+>
+> 많은 주제 중 경제와 문화 측면의 기사가 가장 많아 경제로 묶었다.
+>
+> 다양한 언론사를 야당지와 여당지로 추가 분류하였고 속하지 않은 언론사는 여당지로 분류하였다.
+
+<details>
+
+<summary>자료 정제</summary>
+
+##### 1) 모델링을 위한 자료 수집
+
+```{r}
+#| label: 자료수집 2020
+#| include: True
+#| warning: false
+
+#야놀자
+yanolja2020_sub <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/NewsResult_20200101-20201231.xlsx") %>%
+select(일자, 제목, 본문, 언론사, cat = `통합 분류1`, 키워드)
+
+#야놀자
+yanolja2021_sub <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/NewsResult_20210101-20211231.xlsx") %>%
+select(일자, 제목, 본문, 언론사, cat = `통합 분류1`, 키워드)
+
+#야놀자
+yanolja2022_sub <- readxl::read_excel("C:/Users/YH JUNG/Documents/R/GIT/residence/data/NewsResult_20220101-20221031.xlsx") %>%
+select(일자, 제목, 본문, 언론사, cat = `통합 분류1`, 키워드)
+
+```
+
+</details>
+
+##### 2) 자료 정제
+
+<details>
+
+<summary>야놀자 자료 정제</summary>
+
+```{r}
+#| label: 야놀자 자료 정제
+#| include: true
+#| warning: false
+
+## 야놀자 2020 자료 정제
+yanolja2020_sub2 <- yanolja2020_sub %>%
+
+distinct(제목, .keep_all = T) %>%
+
+mutate(ID = factor(row_number())) %>%
+  
+mutate(date = ymd(일자)) %>%
+  
+mutate(year = year(date)) %>%
+  
+mutate(month = month(date)) %>% 
+
+mutate(day = day(date)) %>%
+
+unite(제목, 본문, col = "text", sep = " ") %>%
+
+mutate(text = str_squish(text)) %>%
+
+mutate(press = case_when(
+
+언론사 == "조선일보" ~ "야당지",
+
+언론사 == "중앙일보" ~ "야당지",
+
+언론사 == "동앙일보" ~ "야당지",
+
+언론사 == "국민일보" ~ "야당지",
+
+언론사 == "문화일보" ~ "야당지",
+
+언론사 == "한국경제" ~ "야당지",
+
+언론사 == "경향신문" ~ "여당지",
+
+TRUE ~ "여당지") ) %>%
+
+separate(cat, sep = ">", into = c("cat", "cat2")) %>%
+
+select(-cat2) %>%
+
+mutate(catSoc = case_when( cat == "경제" ~ "경제면",
+                           cat == "문화" ~ "경제면", 
+                           TRUE ~ "비경제면") )
+
+## 야놀자 2021 자료 정제
+yanolja2021_sub2 <- yanolja2021_sub %>%
+
+distinct(제목, .keep_all = T) %>%
+
+mutate(ID = factor(row_number())) %>%
+  
+mutate(date = ymd(일자)) %>%
+  
+mutate(year = year(date)) %>%
+  
+mutate(month = month(date)) %>% 
+
+mutate(day = day(date)) %>%
+
+unite(제목, 본문, col = "text", sep = " ") %>%
+
+mutate(text = str_squish(text)) %>%
+
+mutate(press = case_when(
+
+언론사 == "조선일보" ~ "야당지",
+
+언론사 == "중앙일보" ~ "야당지",
+
+언론사 == "동앙일보" ~ "야당지",
+
+언론사 == "국민일보" ~ "야당지",
+
+언론사 == "문화일보" ~ "야당지",
+
+언론사 == "한국경제" ~ "야당지",
+
+언론사 == "경향신문" ~ "여당지",
+
+TRUE ~ "여당지") ) %>%
+
+separate(cat, sep = ">", into = c("cat", "cat2")) %>%
+
+select(-cat2) %>%
+
+mutate(catSoc = case_when( cat == "경제" ~ "경제면",
+                           cat == "문화" ~ "경제면", 
+                           TRUE ~ "비경제면") )
+
+## 야놀자 2022 자료 정제
+yanolja2022_sub2 <- yanolja2022_sub %>%
+
+distinct(제목, .keep_all = T) %>%
+
+mutate(ID = factor(row_number())) %>%
+  
+mutate(date = ymd(일자)) %>%
+  
+mutate(year = year(date)) %>%
+  
+mutate(month = month(date)) %>% 
+
+mutate(day = day(date)) %>%
+
+unite(제목, 본문, col = "text", sep = " ") %>%
+
+mutate(text = str_squish(text)) %>%
+
+mutate(press = case_when(
+
+언론사 == "조선일보" ~ "야당지",
+
+언론사 == "중앙일보" ~ "야당지",
+
+언론사 == "동앙일보" ~ "야당지",
+
+언론사 == "국민일보" ~ "야당지",
+
+언론사 == "문화일보" ~ "야당지",
+
+언론사 == "한국경제" ~ "야당지",
+
+언론사 == "경향신문" ~ "여당지",
+
+TRUE ~ "여당지") ) %>%
+
+separate(cat, sep = ">", into = c("cat", "cat2")) %>%
+
+select(-cat2) %>%
+
+mutate(catSoc = case_when( cat == "경제" ~ "경제면",
+                           cat == "문화" ~ "경제면", 
+                           TRUE ~ "비경제면") )
+```
+
+</details>
+
+##### 3) 토큰화
+
+<details>
+
+<summary>야놀자 토큰화</summary>
+
+```{r}
+#| label: 야놀자 토큰화
+#| include: true
+#| warning: false
+
+fullchar_v <- "ㆍ|ㅣ|‘|’|“|”|○|●|◎|◇|◆|□|■|△|▲|▽|▼|〓|◁|◀|▷|▶|♤|♠|♡|♥|♧|♣|⊙|◈|▣"
+
+
+#야놀자 토큰화 2020
+yanolja2020_S <- yanolja2020_sub2 %>%
+
+mutate(키워드 = str_remove_all(키워드, "[^(\\w+|\\d+|,)]")) %>%
+
+mutate(키워드 = str_remove_all(키워드, fullchar_v)) %>%
+
+unnest_tokens(word, 키워드, token = "regex", pattern = ",")
+
+#토큰화 후 데이터 결합
+
+yanolja2020_C <- yanolja2020_S %>%
+
+group_by(ID) %>%
+
+summarise(text2 = str_flatten(word, " ")) %>%
+
+ungroup() %>%
+
+inner_join(yanolja2020_sub2, by = "ID")
+
+#야놀자 토큰화 2021
+yanolja2021_S <- yanolja2021_sub2 %>%
+
+mutate(키워드 = str_remove_all(키워드, "[^(\\w+|\\d+|,)]")) %>%
+
+mutate(키워드 = str_remove_all(키워드, fullchar_v)) %>%
+
+unnest_tokens(word, 키워드, token = "regex", pattern = ",")
+
+#토큰화 후 데이터 결합
+
+yanolja2021_C <- yanolja2021_S %>%
+
+group_by(ID) %>%
+
+summarise(text2 = str_flatten(word, " ")) %>%
+
+ungroup() %>%
+
+inner_join(yanolja2021_sub2, by = "ID")
+
+#야놀자 토큰화 2022
+yanolja2022_S <- yanolja2022_sub2 %>%
+
+mutate(키워드 = str_remove_all(키워드, "[^(\\w+|\\d+|,)]")) %>%
+
+mutate(키워드 = str_remove_all(키워드, fullchar_v)) %>%
+
+unnest_tokens(word, 키워드, token = "regex", pattern = ",")
+
+#토큰화 후 데이터 결합
+
+yanolja2022_C <- yanolja2022_S %>%
+
+group_by(ID) %>%
+
+summarise(text2 = str_flatten(word, " ")) %>%
+
+ungroup() %>%
+
+inner_join(yanolja2022_sub2, by = "ID")
+```
+
+</details>
+
+##### 4) stm 말뭉치
+
+<summary>2020년 야놀자 stm</summary>
+
+```{r}
+#| label: 2020년 야놀자 stm
+#| include: true
+#| warning: false
+
+#2020년 야놀자 stm 말뭉치
+processed2020_yanol <- yanolja2020_C %>% 
+  textProcessor(documents = yanolja2020_C$text2,
+                metadata = .,
+                wordLengths = c(2, Inf))
+
+out2020_yanol <- prepDocuments(processed2020_yanol$documents,
+                           processed2020_yanol$vocab,
+                           processed2020_yanol$meta,
+                           lower.thresh = 0)
+
+
+# 모형구축을 위한 객체 저장
+docs2020_yanol <- out2020_yanol$documents
+
+vocab2020_yanol <- out2020_yanol$vocab
+
+meta2020_yanol <- out2020_yanol$meta
+```
+
+<summary>2021년 야놀자 stm</summary>
+
+```{r}
+#| label: 2021년 야놀자 stm
+#| include: true
+#| warning: false
+
+#2021년 야놀자 stm 말뭉치
+processed2021_yanol <- yanolja2021_C %>% 
+  textProcessor(documents = yanolja2021_C$text2,
+                metadata = .,
+                wordLengths = c(2, Inf))
+
+out2021_yanol <- prepDocuments(processed2021_yanol$documents,
+                           processed2021_yanol$vocab,
+                           processed2021_yanol$meta,
+                           lower.thresh = 0)
+
+
+# 모형구축을 위한 객체 저장
+docs2021_yanol <- out2021_yanol$documents
+
+vocab2021_yanol <- out2021_yanol$vocab
+
+meta2021_yanol <- out2021_yanol$meta
+```
+
+<summary>2022년 야놀자 stm</summary>
+
+```{r}
+#| label: 2022년 야놀자 stm
+#| include: true
+#| warning: false
+
+#2021년 야놀자 stm 말뭉치
+processed2022_yanol <- yanolja2022_C %>% 
+  textProcessor(documents = yanolja2022_C$text2,
+                metadata = .,
+                wordLengths = c(2, Inf))
+
+out2022_yanol <- prepDocuments(processed2022_yanol$documents,
+                           processed2022_yanol$vocab,
+                           processed2022_yanol$meta,
+                           lower.thresh = 0)
+
+
+# 모형구축을 위한 객체 저장
+docs2022_yanol <- out2022_yanol$documents
+
+vocab2022_yanol <- out2022_yanol$vocab
+
+meta2022_yanol <- out2022_yanol$meta
+```
+
+</details>
+
+##### 5) 공변인 분석
+
+```{r}
+#| label: 토픽 갯수 정하기
+#| include: false
+#| warning: false
+#| eval: false
+#주제 갯수
+topicN <- c(10)
+
+storage_yanol <- searchK(docs_yanol, vocab_yanol, K = topicN)
+```
+
+<details>
+
+<summary>야놀자 주제모형(공변인) 분석</summary>
+
+```{r}
+#| label: 야놀자 주제모형(공변인) 분석
+#| include: true
+#| warning: false
+
+#시스템 시간
+t1 <- Sys.time()
+t2 <- Sys.time()
+#주제모형 2020년구성
+meta_fit_yanol2020 <- stm(documents = docs2020_yanol,
+                      vocab = vocab2020_yanol,
+                      data = meta2020_yanol,
+                      K = 10,
+                      prevalence =~ press + s(month, 12), 
+                      max.em.its = 75, 
+                      verbose = F, 
+                      init.type = "Spectral",
+                      seed = 37)
+
+meta_fit_yanol2021 <- stm(documents = docs2021_yanol,
+                      vocab = vocab2021_yanol,
+                      data = meta2021_yanol,
+                      K = 10,
+                      prevalence =~ press + s(month, 12), 
+                      max.em.its = 75, 
+                      verbose = F, 
+                      init.type = "Spectral",
+                      seed = 37)
+
+meta_fit_yanol2022 <- stm(documents = docs2022_yanol,
+                      vocab = vocab2022_yanol,
+                      data = meta2022_yanol,
+                      K = 10,
+                      prevalence =~ press + s(month, 12), 
+                      max.em.its = 75, 
+                      verbose = F, 
+                      init.type = "Spectral",
+                      seed = 37)
+```
+
+</details>
+
+##### 6) 주제 이름 짓기
+
+<summary>야놀자 주제이름 짓기</summary>
+
+```{r}
+#| label: 야놀자 주제이름 짓기
+#| include: false
+#| warning: false
+
+labelTopics(meta_fit_yanol2020)
+
+labelTopics(meta_fit_yanol2021)
+
+labelTopics(meta_fit_yanol2022)
+
+```
+
+```{r}
+#| label: 야놀자 주제이름 정리
+#| include: true
+#| warning: false
+#주제 이름 데이터 프레임에 저장
+topic_name_yanol2022 <- tibble(topic = 1:10,
+                           name = c("1. 크롤링 논란",
+                                    "2. 인터파크 인수",
+                                    "3. 여행",
+                                    "4. 산불지원",
+                                    "5. 광고",
+                                    "6. 할인",
+                                    "7. 국정감사",
+                                    "8. 이벤트",
+                                    "9. 유니콘기업",
+                                    "10. 투자") )
+
+topic_name_yanol2021 <- tibble(topic = 1:10,
+                           name = c("1. 할인",
+                                    "2. 국정감사",
+                                    "3. 유니콘기업",
+                                    "4. NFT",
+                                    "5. 주식",
+                                    "6. 인터파크 인수",
+                                    "7. 관광",
+                                    "8. 투자",
+                                    "9. 광고",
+                                    "10. 여행") )
+
+topic_name_yanol2020 <- tibble(topic = 1:10,
+                           name = c("1. 코로나",
+                                    "2. 플랫폼법",
+                                    "3. 광고",
+                                    "4. 프롭테크",
+                                    "5. 여행",
+                                    "6. 야놀자 골프",
+                                    "7. 클라우드 서비스",
+                                    "8. 할인",
+                                    "9. 블록체인",
+                                    "10. 유니콘기업") )
+```
+
+```{r}
+#| label: 주제별 상위 10개 단어목록
+#| include: false
+#| warning: false
+#주제 이름 데이터 프레임에 저장
+
+##2020
+td_beta_yanol2020 <- meta_fit_yanol2020 %>% tidy(matrix = 'beta')
+
+term_topic_name_yanol2020 <- td_beta_yanol2020 %>%
+
+group_by(topic) %>%
+
+slice_max(beta, n = 10) %>%
+
+left_join(topic_name_yanol2020, by = "topic")
+
+##2021
+td_beta_yanol2021 <- meta_fit_yanol2021 %>% tidy(matrix = 'beta')
+
+term_topic_name_yanol2021 <- td_beta_yanol2021 %>%
+
+group_by(topic) %>%
+
+slice_max(beta, n = 10) %>%
+
+left_join(topic_name_yanol2021, by = "topic")
+
+##2022
+td_beta_yanol2022 <- meta_fit_yanol2022 %>% tidy(matrix = 'beta')
+
+term_topic_name_yanol2022 <- td_beta_yanol2022 %>%
+
+group_by(topic) %>%
+
+slice_max(beta, n = 10) %>%
+
+left_join(topic_name_yanol2022, by = "topic")
+```
+
+
+##### 7) 주제별 단어 분포표
+
+<summary>야놀자 주제별 단어 분포표</summary>
+
+```{r}
+#| label: 2020년 주제 단어 분포표
+#| include: true
+#| warning: false
+
+term_topic_name_yanol2020 %>%
+  ggplot(aes(x = beta,
+             y = reorder_within(term, beta, name),
+             fill = name)) +
+  geom_col(show.legend = F) +
+  
+  facet_wrap(~name, scales = "free") +
+  
+  scale_y_reordered() + 
+  
+  labs(x = expression("단어 확률분포:"~beta), y = NULL,
+       title = "2020년 야놀자 주제별 단어 확률 분포",
+       subtitle = "10개의 주제 분석") +
+  
+  theme(plot.title = element_text(size = 20))
+```
+
+> 2020년도에는 블록체인, 유니콘 기업, 코로나, 클라우드 서비스가 높은 분포를 보였다.
+
+```{r}
+#| label: 2021년 주제 단어 분포표
+#| include: true
+#| warning: false
+
+term_topic_name_yanol2021 %>%
+  ggplot(aes(x = beta,
+             y = reorder_within(term, beta, name),
+             fill = name)) +
+  geom_col(show.legend = F) +
+  
+  facet_wrap(~name, scales = "free") +
+  
+  scale_y_reordered() + 
+  
+  labs(x = expression("단어 확률분포:"~beta), y = NULL,
+       title = "2021년 야놀자 주제별 단어 확률 분포",
+       subtitle = "10개의 주제 분석") +
+  
+  theme(plot.title = element_text(size = 20))
+```
+
+> 2021년도에는 인터파크 인수, 유니콘 기업, 투자에서 단어 분포가 높게 나타났다.
+
+```{r}
+#| label: 2022년 주제 단어 분포표표
+#| include: true
+#| warning: false
+
+term_topic_name_yanol2022 %>%
+  ggplot(aes(x = beta,
+             y = reorder_within(term, beta, name),
+             fill = name)) +
+  geom_col(show.legend = F) +
+  
+  facet_wrap(~name, scales = "free") +
+  
+  scale_y_reordered() + 
+  
+  labs(x = expression("단어 확률분포:"~beta), y = NULL,
+       title = "2022년 야놀자 주제별 단어 확률 분포",
+       subtitle = "10개의 주제 분석") +
+  
+  theme(plot.title = element_text(size = 20))
+```
+
+> 2022년에는 산불지원, 투자, 광고의 단어확률 분포가 높았다.
+
+##### 8) 상위 주제어
+
+<details>
+
+<summary>야놀자 감마 분석을 통한 상위 주제어</summary>
+
+```{r}
+#| label: 감마분석 상위 주제어 선정 및 평균 계산
+#| include: false
+#| warning: false
+
+#감마분석
+td_gamma_yanol2020 <- meta_fit_yanol2020 %>% tidy(matrix = 'gamma')
+
+#단어분포 자료를 통해 주제별 상위 10개 단어 선정
+top_terms_yanol2020 <-
+
+td_beta_yanol2020 %>%
+
+group_by(topic) %>%
+
+slice_max(beta, n = 10) %>%
+
+select(topic, term) %>%
+
+summarise(terms = str_flatten(term, collapse = ","))
+
+top_terms_yanol2020
+#주제별 감마 평균 계산
+gamma_terms_yanol2020 <-
+
+td_gamma_yanol2020 %>%
+
+group_by(topic) %>%
+
+summarise(gamma = mean(gamma)) %>%
+
+left_join(top_terms_yanol2020, by = 'topic') %>% 
+
+left_join(topic_name_yanol2020, by = 'topic')
+
+gamma_terms_yanol2020
+
+##2021
+td_gamma_yanol2021 <- meta_fit_yanol2021 %>% tidy(matrix = 'gamma')
+
+#단어분포 자료를 통해 주제별 상위 10개 단어 선정
+top_terms_yanol2021 <-
+
+td_beta_yanol2021 %>%
+
+group_by(topic) %>%
+
+slice_max(beta, n = 10) %>%
+
+select(topic, term) %>%
+
+summarise(terms = str_flatten(term, collapse = ","))
+
+top_terms_yanol2021
+#주제별 감마 평균 계산
+gamma_terms_yanol2021 <-
+
+td_gamma_yanol2021 %>%
+
+group_by(topic) %>%
+
+summarise(gamma = mean(gamma)) %>%
+
+left_join(top_terms_yanol2021, by = 'topic') %>% 
+
+left_join(topic_name_yanol2021, by = 'topic')
+
+gamma_terms_yanol2021
+
+##2022
+td_gamma_yanol2022 <- meta_fit_yanol2022 %>% tidy(matrix = 'gamma')
+
+#단어분포 자료를 통해 주제별 상위 10개 단어 선정
+top_terms_yanol2022 <-
+
+td_beta_yanol2022 %>%
+
+group_by(topic) %>%
+
+slice_max(beta, n = 10) %>%
+
+select(topic, term) %>%
+
+summarise(terms = str_flatten(term, collapse = ","))
+
+top_terms_yanol2022
+#주제별 감마 평균 계산
+gamma_terms_yanol2022 <-
+
+td_gamma_yanol2022 %>%
+
+group_by(topic) %>%
+
+summarise(gamma = mean(gamma)) %>%
+
+left_join(top_terms_yanol2022, by = 'topic') %>% 
+
+left_join(topic_name_yanol2022, by = 'topic')
+
+gamma_terms_yanol2022
+```
+
+</details>
+
+<summary>상위 주제어 그래프 2020년</summary>
+
+```{r}
+#| label: 야놀자 상위 주제어 그래프 2020년
+#| include: true
+#| warning: false
+
+##2020
+gamma_terms_yanol2020 %>%
+  
+  ggplot(aes(x = gamma, y = reorder(name, gamma), fill = name)) +
+  
+  geom_col(show.legend = F) +
+  
+  geom_text(aes(label = round(gamma, 2)),
+            hjust = 1.15) + 
+  
+  geom_text(aes(label = terms),
+            hjust = -0.05) + 
+  
+  scale_x_continuous(expand = c(0, 0), 
+                     limit = c(0, .8)) + 
+  
+  labs(x = expression("문서 확률분포"~(gamma)), 
+       y = NULL,
+       title = "2020년 야놀자 상위 주제어",
+       subtitle = "주제별로 기여도가 높은 단어 중심") +
+  
+  theme(plot.title = element_text(size = 20))
+```
+
+2020년 상위 주제어 그래프에서는 할인, 유니콘 기업, 강원도 여행, 클라우드 서비스의 기여도 높은 단어가 많았다.
+
+<summary>상위 주제어 그래프 2021년</summary>
+
+```{r}
+#| label: 야놀자 상위 주제어 그래프 2021년
+#| include: true
+#| warning: false
+
+##2021
+gamma_terms_yanol2021 %>%
+  
+  ggplot(aes(x = gamma, y = reorder(name, gamma), fill = name)) +
+  
+  geom_col(show.legend = F) +
+  
+  geom_text(aes(label = round(gamma, 2)),
+            hjust = 1.15) + 
+  
+  geom_text(aes(label = terms),
+            hjust = -0.05) + 
+  
+  scale_x_continuous(expand = c(0, 0), 
+                     limit = c(0, .8)) + 
+  
+  labs(x = expression("문서 확률분포"~(gamma)), 
+       y = NULL,
+       title = "2021년 야놀자 상위 주제어",
+       subtitle = "주제별로 기여도가 높은 단어 중심") +
+  
+  theme(plot.title = element_text(size = 20))
+```
+
+2021년에는 인터파크 인수, 관광, 유니콘 기업, 주식 순으로 단어 기여도가 높았다.
+<summary>상위 주제어 그래프 2022년</summary>
+
+```{r}
+#| label: 야놀자 상위 주제어 그래프 2022년
+#| include: true
+#| warning: false
+
+##2022
+gamma_terms_yanol2022 %>%
+  
+  ggplot(aes(x = gamma, y = reorder(name, gamma), fill = name)) +
+  
+  geom_col(show.legend = F) +
+  
+  geom_text(aes(label = round(gamma, 2)),
+            hjust = 1.15) + 
+  
+  geom_text(aes(label = terms),
+            hjust = -0.05) + 
+  
+  scale_x_continuous(expand = c(0, 0), 
+                     limit = c(0, .8)) + 
+  
+  labs(x = expression("문서 확률분포"~(gamma)), 
+       y = NULL,
+       title = "2022년 야놀자 상위 주제어",
+       subtitle = "주제별로 기여도가 높은 단어 중심") +
+  
+  theme(plot.title = element_text(size = 20))
+```
+
+2022년도에는 주식, 산불지원, 여행, 할인의 주제어 단어가 높았다.
+
+##### 9) 시간별 주제 분포
+
+<details>
+
+<summary>야놀자 월별 주제 분포</summary>
+
+```{r}
+#| label: 월별 주제분포 준비
+#| include: false
+#| warning: false
+
+##2020
+prep2020 <- estimateEffect(formula = 1:10 ~ press + s(month, 6), 
+                       stmobj = meta_fit_yanol2020,
+                       metadata = out2020_yanol$meta,
+                       uncertainty = "Global")
+
+# 공변인 계수
+coef2020_time <- 
+prep2020 %>% tidy() %>% 
+  filter(str_detect(term, "^s"))
+
+# 데이터프레임 결합
+term_coef_time2020 <- 
+coef2020_time %>% 
+  left_join(topic_name_yanol2020, by = "topic") 
+
+##2021
+prep2021 <- estimateEffect(formula = 1:10 ~ press + s(month, 6), 
+                       stmobj = meta_fit_yanol2021,
+                       metadata = out2021_yanol$meta,
+                       uncertainty = "Global")
+
+# 공변인 계수
+coef2021_time <- 
+prep2021 %>% tidy() %>% 
+  filter(str_detect(term, "^s"))
+
+# 데이터프레임 결합
+term_coef_time2021 <- 
+coef2021_time %>% 
+  left_join(topic_name_yanol2021, by = "topic") 
+
+##2022
+prep2022 <- estimateEffect(formula = 1:10 ~ press + s(month, 6), 
+                       stmobj = meta_fit_yanol2022,
+                       metadata = out2022_yanol$meta,
+                       uncertainty = "Global")
+
+# 공변인 계수
+coef2022_time <- 
+prep2022 %>% tidy() %>% 
+  filter(str_detect(term, "^s"))
+
+# 데이터프레임 결합
+term_coef_time2022 <- 
+coef2022_time %>% 
+  left_join(topic_name_yanol2022, by = "topic") 
+
+```
+
+</details>
+
+총 4개의 주제를 공통적으로 도출해냈다. \
+유니콘 기업, 광고, 여행, 할인을 순으로 년도별, 월별 어떠한 변화가 있는지를 파악했다 \
+
+<summary>월별 주제 분포 그래프</summary>
+
+```{r}
+#| label: 2020년 그래프
+#| include: true
+#| warning: false
+
+term_coef_time2020 %>% 
+  mutate(term = str_extract(term, "\\d$")) %>% 
+  mutate(term = as.integer(term)) %>%
+  mutate(term = term * 2 - 1) %>%
+  mutate(term = as.factor(term)) %>% 
+           
+  filter(str_detect(name, "^3|^5|^8|^10")) %>% 
+  
+  ggplot(aes(x = term,
+             y = estimate,
+             color = name)) +
+  geom_line(aes(group = name), size = 1.2) +
+  geom_point(aes(shape = name), size = 3,) +
+  geom_errorbar(aes(ymin = estimate - std.error, 
+                    ymax = estimate + std.error), 
+                width = .4, size = 1,
+                position = position_dodge(.01)) +
+  labs(x = "기간(1월 ~ 12월)",
+       y = "문서당 주제 분포 비율",
+       title = "2020년 월별 주제 분포") +
+  theme(plot.title = element_text(size = 20))
+
+```
+
+
+##### 2020년도 \
+**유니콘 기업**은 1월부터 점차 상승하는 추세를 보였다. \
+**광고**는 1월에 가장 높았고 평균적으로 완만했다. \
+**여행**은 1월에서 3월로 가며 급격하게 상승하다가 여름에서 부터 주제가 줄어들었다. \ 이는 코로나의 영향이 큰 것으로 보인다. \ 코로나가 2월에 발생하며 여행을 가지 못하는 것에 대한 기사가 많이 나왔기 때문에 주제가 상승한 것으로 보인다. \
+**할인**은 5월과 9월에 가장 많이 실행되었고 광고가 실행된 이후에는 급격하게 감소했다. 
+
+```{r}
+#| label: 2021년 그래프
+#| include: true
+#| warning: false
+
+term_coef_time2021 %>% 
+  mutate(term = str_extract(term, "\\d$")) %>% 
+  mutate(term = as.integer(term)) %>%
+  mutate(term = term * 2 - 1) %>%
+  mutate(term = as.factor(term)) %>% 
+           
+  filter(str_detect(name, "^9|^10|^1|^3")) %>% 
+  
+  ggplot(aes(x = term,
+             y = estimate,
+             color = name)) +
+  geom_line(aes(group = name), size = 1.2) +
+  geom_point(aes(shape = name), size = 3,) +
+  geom_errorbar(aes(ymin = estimate - std.error, 
+                    ymax = estimate + std.error), 
+                width = .4, size = 1,
+                position = position_dodge(.01)) +
+  labs(x = "기간(1월 ~ 12월)",
+       y = "문서당 주제 분포 비율",
+       title = "2021년 월별 주제 분포") +
+  theme(plot.title = element_text(size = 20))
+
+```
+
+##### 2021년도
+**유니콘 기업**은 20년도 차차 상승하는 것을 받아 1월과 5월에 고점을 찍었지만 여름에 들어서며 줄어들었다. \
+**광고**는 여름에 많이 진행된 것으로 보인다. \
+**여행**은 20년도에는 감소하다가 21년도에 들어서면서 점점 상승하는 추세를 보이고 있다. \
+**할인**은 3월과 7월에 가장 많이 실행되었고 광고가 실행된 이후에는 급격하게 감소했다. \
+
+```{r}
+#| label: 2022년 그래프
+#| include: true
+#| warning: false
+
+term_coef_time2022 %>% 
+  mutate(term = str_extract(term, "\\d$")) %>% 
+  mutate(term = as.integer(term)) %>%
+  mutate(term = term * 2 - 1) %>%
+  mutate(term = as.factor(term)) %>% 
+           
+  filter(str_detect(name, "^5|^3|^6|^9")) %>% 
+  
+  ggplot(aes(x = term,
+             y = estimate,
+             color = name)) +
+  geom_line(aes(group = name), size = 1.2) +
+  geom_point(aes(shape = name), size = 3,) +
+  geom_errorbar(aes(ymin = estimate - std.error, 
+                    ymax = estimate + std.error), 
+                width = .4, size = 1,
+                position = position_dodge(.01)) +
+  labs(x = "기간(1월 ~ 10월)",
+       y = "문서당 주제 분포 비율",
+       title = "2022년 월별 주제 분포") +
+  theme(plot.title = element_text(size = 20))
+
+```
+
+##### 2022년도
+**유니콘 기업**은 21년도와 마찬가지로 1월과 5월에 고점을 찍었지만 여름에 들어서며 줄어들었다. \
+**광고**는 1월과 5월에 고점을 찍고 여름에 줄어들었다. 이는 4월 거리두기 해제와 함께 이벤트를 많이 실행한 것으로 보인다. \
+**여행**은 22년도의 여행은 4월 이후부터 여름에 고점을 찍었고 이후에는 줄어들고 있다. \
+**할인**은 22년은 할인의 시즌이다. \ 
+거리두기 해체와 함께 숙박업에서는 할인을 통한 차별점을 두기 위해 노력하고 있는 것으로 본인다. \
+
+
+## 4.정리
+3년간의 연월별 주제의 변화추이를 살펴본 결과 \ 
+
+**유니콘 기업**과 관련된 내용은 모두 년도 초반기에 가장 주목도를 많이 받는 것으로 보인다. \
+투자의 주목을 많이 받기도 하고 주식 시장의 변동에 영향을 받기 때문으로 보인다. \
+
+**광고**는 20년 21년 모두 침체된 분위기를 보였다.\ 하지만 2022년에 들어서면서 주제 분포가 많아지기 시작했고 점차 증가하는 것으로 보인다. \ 
+
+**여행**은 코로나 시즌 이후 부정적인 주제와 엮이고 방역수칙에 의해 주목을 받지 못했다. \
+하지만 2022년에 들어서며 3년동안 처음으로 분포의 비율이 늘어난 것을 확인할 수 있다. \
+
+**할인**은 년도마다 할인하는 월이 달랐다. 아마 프로모션의 형태가 소비자의 의해 결정되기 때문에 그런 것일 수도 있다고 본다. \ 2022년도에 들어서면서 할인과 관련된 내용은 매우 많아졌는데 이는 앞서 말했듯이 엔데믹의 영향이 있을 가능성이 높다.
+
